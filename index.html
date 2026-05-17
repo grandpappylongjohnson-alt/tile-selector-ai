@@ -3,181 +3,220 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="AI-powered tile selection game with minesweeper mechanics">
 <meta name="theme-color" content="#0b0f1a">
-<meta name="description" content="Tile Selector AI - An intelligent minesweeper-style game with AI suggestions">
 <title>Tile Selector AI</title>
-
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230b0f1a' width='192' height='192'/><rect fill='%2300ffd5' x='40' y='40' width='112' height='112' rx='16'/><text x='96' y='120' font-size='80' fill='%230b0f1a' text-anchor='middle' font-weight='bold'>AI</text></svg>">
 <style>
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #0b0f1a 0%, #1a1f2e 100%);
+  background: linear-gradient(135deg, #0b0f1a 0%, #1a1f3a 100%);
   color: #e0e0e0;
-  text-align: center;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px;
+  padding: 20px;
 }
 
 header {
-  margin-top: 20px;
-  margin-bottom: 10px;
+  text-align: center;
+  margin-bottom: 30px;
 }
 
 h1 {
-  margin: 0 0 5px 0;
-  font-size: 2.5rem;
+  margin: 0;
+  font-size: clamp(24px, 6vw, 48px);
   background: linear-gradient(135deg, #00ffd5, #00d4ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-weight: 900;
   letter-spacing: 2px;
 }
 
 .subtitle {
-  font-size: 0.9rem;
+  font-size: 14px;
   color: #888;
-  margin: 0;
+  margin-top: 5px;
 }
 
-#status {
-  font-size: 1.1rem;
-  margin: 15px 0;
-  min-height: 24px;
-  font-weight: 500;
-  animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-  margin: 15px auto;
-  max-width: 400px;
-  width: 100%;
-}
-
-.stat-box {
-  background: rgba(0, 255, 213, 0.08);
-  border: 1px solid rgba(0, 255, 213, 0.2);
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 0.9rem;
-}
-
-.stat-label {
-  color: #888;
-  font-size: 0.8rem;
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  font-size: 1.8rem;
-  font-weight: bold;
+.status {
+  font-size: 18px;
+  font-weight: 600;
   color: #00ffd5;
+  margin-bottom: 20px;
+  min-height: 24px;
+  text-shadow: 0 0 10px rgba(0, 255, 213, 0.3);
+}
+
+.game-container {
+  background: rgba(30, 35, 51, 0.6);
+  border: 2px solid rgba(0, 255, 213, 0.1);
+  border-radius: 20px;
+  padding: 30px;
+  backdrop-filter: blur(10px);
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 255, 213, 0.1), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(55px, 1fr));
-  gap: 8px;
-  max-width: 500px;
-  margin: 20px auto;
-  width: 100%;
-  padding: 0 10px;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+  min-height: 320px;
+  max-width: 100%;
 }
 
 @media (max-width: 480px) {
-  .grid {
-    grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
-    gap: 6px;
-  }
+  .grid { gap: 6px; }
+  .game-container { padding: 20px; }
 }
 
 .tile {
   aspect-ratio: 1;
-  background: #1e2333;
-  border: 2px solid #2a2f45;
-  border-radius: 10px;
+  background: linear-gradient(135deg, #1e2333 0%, #2a2f45 100%);
+  border: 2px solid rgba(0, 255, 213, 0.15);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 1.5rem;
-  transition: all 0.15s ease;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
+  font-size: clamp(24px, 8vw, 40px);
+  font-weight: bold;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.tile:hover:not(.revealed) {
+  transform: translateY(-2px);
+  border-color: rgba(0, 255, 213, 0.4);
+  background: linear-gradient(135deg, #252d42 0%, #313745 100%);
+  box-shadow: 0 4px 12px rgba(0, 255, 213, 0.2);
 }
 
 .tile:active:not(.revealed) {
-  transform: scale(0.95);
-  border-color: #00ffd5;
+  transform: translateY(1px);
+}
+
+.tile.revealed {
+  cursor: default;
+  border-color: rgba(0, 255, 213, 0.3);
+  font-weight: 900;
 }
 
 .tile.safe {
-  background: #1f8f4a;
-  border-color: #22a856;
+  background: linear-gradient(135deg, #1f8f4a 0%, #2db855 100%);
+  border-color: rgba(45, 184, 85, 0.5);
+  box-shadow: 0 0 20px rgba(45, 184, 85, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
 }
 
 .tile.mine {
-  background: #b3261e;
-  border-color: #d32f2f;
+  background: linear-gradient(135deg, #b3261e 0%, #d32f2f 100%);
+  border-color: rgba(211, 47, 47, 0.5);
+  box-shadow: 0 0 20px rgba(211, 47, 47, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .tile.suggest {
-  border: 2px solid #00ffd5;
-  box-shadow: 0 0 12px rgba(0, 255, 213, 0.3), inset 0 0 12px rgba(0, 255, 213, 0.1);
+  box-shadow: inset 0 0 0 2px #00ffd5, 0 0 15px rgba(0, 255, 213, 0.6);
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
-.controls {
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: inset 0 0 0 2px #00ffd5, 0 0 15px rgba(0, 255, 213, 0.6); }
+  50% { box-shadow: inset 0 0 0 2px #00ffd5, 0 0 25px rgba(0, 255, 213, 0.9); }
+}
+
+.panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin: 20px 0;
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .panel { grid-template-columns: 1fr; font-size: 13px; }
+}
+
+.stat {
+  background: rgba(0, 255, 213, 0.05);
+  border: 1px solid rgba(0, 255, 213, 0.15);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-label {
+  color: #888;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 900;
+  color: #00ffd5;
+  text-shadow: 0 0 10px rgba(0, 255, 213, 0.3);
+}
+
+.buttons {
   display: flex;
-  gap: 10px;
-  margin: 20px auto;
+  gap: 12px;
+  margin-top: 25px;
   flex-wrap: wrap;
-  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  .buttons { flex-direction: column; }
 }
 
 button {
+  flex: 1;
   padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border: 2px solid rgba(0, 255, 213, 0.3);
+  border-radius: 10px;
+  background: rgba(0, 255, 213, 0.1);
+  color: #00ffd5;
   font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 1px;
-  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #00ffd5, #00d4ff);
-  color: #0b0f1a;
+button:hover {
+  background: rgba(0, 255, 213, 0.2);
+  border-color: #00ffd5;
+  box-shadow: 0 0 15px rgba(0, 255, 213, 0.4);
+  transform: translateY(-2px);
 }
 
-.btn-primary:active {
-  transform: scale(0.98);
+button:active {
+  transform: translateY(0);
 }
 
-.btn-secondary {
-  background: #2a2f45;
-  color: #e0e0e0;
-  border: 1px solid #3a3f55;
+button.secondary {
+  border-color: rgba(255, 100, 100, 0.3);
+  color: #ff6464;
+  background: rgba(255, 100, 100, 0.05);
 }
 
-.btn-secondary:active {
-  background: #3a3f55;
-  transform: scale(0.98);
+button.secondary:hover {
+  background: rgba(255, 100, 100, 0.15);
+  border-color: #ff6464;
+  box-shadow: 0 0 15px rgba(255, 100, 100, 0.3);
 }
 
 .modal {
@@ -185,42 +224,98 @@ button {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
   z-index: 1000;
   align-items: center;
   justify-content: center;
+  padding: 20px;
 }
 
-.modal.show {
-  display: flex;
-}
+.modal.active { display: flex; }
 
 .modal-content {
-  background: #1a1f2e;
-  border: 2px solid #00ffd5;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #0b0f1a 0%, #1a1f3a 100%);
+  border: 2px solid rgba(0, 255, 213, 0.2);
+  border-radius: 20px;
   padding: 30px;
   max-width: 400px;
-  text-align: center;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
 .modal-content h2 {
-  color: #00ffd5;
   margin-top: 0;
+  color: #00ffd5;
+  text-align: center;
 }
 
-.modal-content p {
-  margin: 15px 0;
-  line-height: 1.6;
+.modal-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.modal-stat {
+  background: rgba(0, 255, 213, 0.05);
+  border: 1px solid rgba(0, 255, 213, 0.15);
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+}
+
+.modal-stat-label {
+  color: #888;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.modal-stat-value {
+  font-size: 24px;
+  font-weight: 900;
+  color: #00ffd5;
+}
+
+.install-prompt {
+  background: rgba(0, 255, 213, 0.05);
+  border: 1px solid rgba(0, 255, 213, 0.2);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  font-size: 13px;
+  color: #ccc;
+}
+
+.install-prompt button {
+  margin-top: 10px;
+  width: 100%;
+  padding: 10px;
 }
 
 footer {
-  margin-top: auto;
-  padding-bottom: 20px;
-  font-size: 0.85rem;
+  margin-top: 40px;
+  text-align: center;
+  font-size: 12px;
   color: #666;
+}
+
+footer a {
+  color: #00ffd5;
+  text-decoration: none;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+@supports (display: grid) {
+  .tile {
+    font-size: max(24px, 3vw);
+  }
 }
 </style>
 </head>
@@ -228,195 +323,208 @@ footer {
 <body>
 
 <header>
-  <h1>🎮 TILE AI</h1>
-  <p class="subtitle">Intelligent Minesweeper Strategy Game</p>
+  <h1>🎯 TILE SELECTOR AI</h1>
+  <div class="subtitle">Strategic minesweeper with AI suggestions</div>
 </header>
 
-<div id="status">Starting new game...</div>
-
-<div class="stats">
-  <div class="stat-box">
-    <div class="stat-label">Safe Picks</div>
-    <div class="stat-value" id="safe-count">0/3</div>
+<div class="game-container">
+  <div class="status" id="status" role="status" aria-live="polite">Initializing game...</div>
+  
+  <div class="grid" id="grid" role="main" aria-label="Game grid"></div>
+  
+  <div class="panel" id="panel">
+    <div class="stat">
+      <div class="stat-label">Safe Picks</div>
+      <div class="stat-value"><span id="safeCount">0</span>/<span id="maxSafe">3</span></div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Remaining</div>
+      <div class="stat-value" id="remaining">25</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Mines</div>
+      <div class="stat-value" id="mineCount">3</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Win Rate</div>
+      <div class="stat-value" id="winRate">0%</div>
+    </div>
   </div>
-  <div class="stat-box">
-    <div class="stat-label">Mines</div>
-    <div class="stat-value" id="mine-count">3</div>
-  </div>
-  <div class="stat-box">
-    <div class="stat-label">Win Streak</div>
-    <div class="stat-value" id="streak">0</div>
-  </div>
-  <div class="stat-box">
-    <div class="stat-label">Total Wins</div>
-    <div class="stat-value" id="wins">0</div>
+  
+  <div class="buttons">
+    <button onclick="resetGame()" aria-label="Start a new game">🔄 New Game</button>
+    <button onclick="toggleAutoSave()" id="autoSaveBtn" aria-label="Toggle auto-save feature">💾 Auto-Save: ON</button>
+    <button onclick="showStatsModal()" aria-label="View game statistics">📊 Stats</button>
   </div>
 </div>
 
-<div class="grid" id="grid"></div>
-
-<div class="controls">
-  <button class="btn-primary" onclick="resetGame()">New Game</button>
-  <button class="btn-secondary" onclick="showStats()">Stats</button>
-  <button class="btn-secondary" onclick="toggleAutoSave()" id="autosave-btn">Auto-Save: ON</button>
-</div>
-
-<div class="modal" id="stats-modal">
+<div class="modal" id="statsModal">
   <div class="modal-content">
-    <h2>📊 Game Statistics</h2>
-    <p>Total Wins: <span id="modal-wins">0</span></p>
-    <p>Best Streak: <span id="modal-best-streak">0</span></p>
-    <p>Win Rate: <span id="modal-win-rate">0%</span></p>
-    <p>Games Played: <span id="modal-games-played">0</span></p>
-    <button class="btn-primary" onclick="closeStats()">Close</button>
-    <button class="btn-secondary" onclick="clearAllStats()">Clear All</button>
+    <h2>Game Statistics</h2>
+    <div class="modal-stats">
+      <div class="modal-stat">
+        <div class="modal-stat-label">Total Games</div>
+        <div class="modal-stat-value" id="modalGames">0</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-label">Wins</div>
+        <div class="modal-stat-value" id="modalWins">0</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-label">Best Streak</div>
+        <div class="modal-stat-value" id="modalStreak">0</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-label">Win Rate</div>
+        <div class="modal-stat-value" id="modalWinRate">0%</div>
+      </div>
+    </div>
+    <div id="installPrompt" class="install-prompt" style="display:none;">
+      <strong>💡 Install as App</strong><br>
+      Get offline access and install on your home screen!
+      <button onclick="installPWA()">⬇️ Install Now</button>
+    </div>
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button onclick="closeStatsModal()" style="flex: 1;">Close</button>
+      <button onclick="clearAllStats()" class="secondary" style="flex: 1;">Clear History</button>
+    </div>
   </div>
 </div>
 
 <footer>
-  <p>💾 Your progress is auto-saved | 🤖 AI-powered suggestions</p>
+  <p>Made with ❤️ | <a href="https://github.com/grandpappylongjohnson-alt/tile-selector-ai" target="_blank">GitHub Repo</a></p>
 </footer>
 
 <script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+}
+
 const CONFIG = {
   mines: 3,
   maxSafePicks: 3,
-  gridSize: 25,
-  suggestionCount: 3
+  gridSize: 25
 };
 
-let gameState = {
-  board: [],
-  revealed: [],
-  safeCount: 0,
-  gameOver: false,
-  won: false,
-  stats: {
-    wins: 0,
-    losses: 0,
-    streak: 0,
-    bestStreak: 0,
-    gamesPlayed: 0
-  },
-  autoSave: true
-};
+let board = [];
+let revealed = [];
+let safeCount = 0;
+let gameOver = false;
+let autoSave = true;
+let deferredPrompt = null;
 
-function loadGame() {
-  const saved = localStorage.getItem('tileAI_gameState');
-  if (saved) {
-    try {
-      gameState = JSON.parse(saved);
-    } catch(e) {
-      gameState.stats = { wins: 0, losses: 0, streak: 0, bestStreak: 0, gamesPlayed: 0 };
-    }
-  }
-}
-
-function saveGame() {
-  if (gameState.autoSave) {
-    localStorage.setItem('tileAI_gameState', JSON.stringify(gameState));
-  }
-}
-
-function clearAllStats() {
-  if (confirm('Clear all statistics? This cannot be undone.')) {
-    gameState.stats = { wins: 0, losses: 0, streak: 0, bestStreak: 0, gamesPlayed: 0 };
-    localStorage.removeItem('tileAI_gameState');
-    saveGame();
-    closeStats();
-    updateUI();
-  }
-}
-
-function toggleAutoSave() {
-  gameState.autoSave = !gameState.autoSave;
-  document.getElementById('autosave-btn').textContent = `Auto-Save: ${gameState.autoSave ? 'ON' : 'OFF'}`;
-  if (gameState.autoSave) saveGame();
-}
-
-function initGame() {
-  gameState.board = Array(CONFIG.gridSize).fill('safe');
-  gameState.revealed = [];
-  gameState.safeCount = 0;
-  gameState.gameOver = false;
-  gameState.won = false;
+function init() {
+  board = Array(CONFIG.gridSize).fill('safe');
+  revealed = [];
+  safeCount = 0;
+  gameOver = false;
 
   let placed = 0;
   while (placed < CONFIG.mines) {
-    const idx = Math.floor(Math.random() * CONFIG.gridSize);
-    if (gameState.board[idx] === 'safe') {
-      gameState.board[idx] = 'mine';
+    let r = Math.floor(Math.random() * CONFIG.gridSize);
+    if (board[r] === 'safe') {
+      board[r] = 'mine';
       placed++;
     }
   }
-
-  gameState.stats.gamesPlayed++;
   saveGame();
 }
 
-function calculateTileProbability(idx) {
-  if (gameState.revealed.includes(idx)) return -1;
-
-  const unrevealed = CONFIG.gridSize - gameState.revealed.length;
-  const safeLeft = CONFIG.gridSize - CONFIG.mines - gameState.safeCount;
-
-  let baseProbability = safeLeft / unrevealed;
-
-  let minDistance = Infinity;
-  gameState.revealed.forEach(revealedIdx => {
-    const dist = Math.abs(idx - revealedIdx);
-    minDistance = Math.min(minDistance, dist);
-  });
-
-  const proximityBonus = Math.min(minDistance / 10, 0.15);
-  const noise = (Math.random() * 0.05) - 0.025;
-
-  return Math.max(0, baseProbability + proximityBonus + noise);
-}
-
 function getSuggestions() {
-  if (gameState.gameOver) return [];
-  if (gameState.revealed.length === 0) {
-    return [12, 7, 17];
-  }
+  if (gameOver) return [];
 
-  const scores = [];
+  let scores = [];
+  const unrevealed = CONFIG.gridSize - revealed.length;
+  const baseRisk = CONFIG.mines / unrevealed;
+
   for (let i = 0; i < CONFIG.gridSize; i++) {
-    const prob = calculateTileProbability(i);
-    if (prob >= 0) {
-      scores.push({ idx: i, prob });
+    if (revealed.includes(i)) continue;
+
+    let score = 1 - baseRisk;
+    let noise = (Math.random() * 0.05) - 0.025;
+    
+    // Spatial spreading: prefer tiles not near recently picked
+    if (revealed.length > 0) {
+      let minDist = Math.min(...revealed.map(r => Math.abs(i - r)));
+      score += Math.min(minDist * 0.02, 0.15);
     }
+    
+    score += noise;
+    scores.push({ i, score: Math.max(0, Math.min(1, score)) });
   }
 
   return scores
-    .sort((a, b) => b.prob - a.prob)
-    .slice(0, CONFIG.suggestionCount)
-    .map(x => x.idx);
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(x => x.i);
 }
 
-function clickTile(idx) {
-  if (gameState.gameOver || gameState.revealed.includes(idx)) return;
+function render() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  let suggestions = getSuggestions();
 
-  gameState.revealed.push(idx);
+  for (let i = 0; i < CONFIG.gridSize; i++) {
+    let tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.setAttribute('role', 'button');
+    tile.setAttribute('tabindex', '0');
+    tile.setAttribute('aria-label', `Tile ${i + 1}`);
 
-  if (gameState.board[idx] === 'mine') {
-    gameState.gameOver = true;
-    gameState.stats.streak = 0;
-    gameState.stats.losses++;
-    document.getElementById('status').textContent = '💥 Mine Hit! Game Over';
+    if (suggestions.includes(i) && !revealed.includes(i)) {
+      tile.classList.add('suggest');
+      tile.setAttribute('aria-label', `Tile ${i + 1} - AI Recommended`);
+    }
+
+    if (revealed.includes(i)) {
+      tile.classList.add('revealed');
+      if (board[i] === 'mine') {
+        tile.classList.add('mine');
+        tile.innerText = '💣';
+        tile.setAttribute('aria-label', `Mine at position ${i + 1}`);
+      } else {
+        tile.classList.add('safe');
+        tile.innerText = '✓';
+        tile.setAttribute('aria-label', `Safe tile at position ${i + 1}`);
+      }
+    }
+
+    tile.onclick = () => clickTile(i);
+    tile.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        clickTile(i);
+      }
+    });
+    grid.appendChild(tile);
+  }
+
+  updatePanel();
+}
+
+function clickTile(i) {
+  if (gameOver || revealed.includes(i)) return;
+
+  revealed.push(i);
+
+  if (board[i] === 'mine') {
+    gameOver = true;
+    document.getElementById('status').innerText = '💥 MINE HIT — You lost this round';
+    document.getElementById('status').style.color = '#ff6464';
     revealAll();
+    updateStats('loss');
   } else {
-    gameState.safeCount++;
-
-    if (gameState.safeCount >= CONFIG.maxSafePicks) {
-      gameState.gameOver = true;
-      gameState.won = true;
-      gameState.stats.wins++;
-      gameState.stats.streak++;
-      gameState.stats.bestStreak = Math.max(gameState.stats.bestStreak, gameState.stats.streak);
-      document.getElementById('status').textContent = `✅ Victory! ${CONFIG.maxSafePicks}/${CONFIG.maxSafePicks} safe picks!`;
+    safeCount++;
+    const progress = safeCount === 1 ? '🎯' : safeCount === 2 ? '🎯🎯' : '🎯🎯🎯';
+    
+    if (safeCount >= CONFIG.maxSafePicks) {
+      gameOver = true;
+      document.getElementById('status').innerText = `✅ ${progress} VICTORY! All safe picks complete!`;
+      document.getElementById('status').style.color = '#00ffd5';
+      updateStats('win');
     } else {
-      document.getElementById('status').textContent = `Safe pick (${gameState.safeCount}/${CONFIG.maxSafePicks})`;
+      document.getElementById('status').innerText = `${progress} Safe pick (${safeCount}/${CONFIG.maxSafePicks})`;
+      document.getElementById('status').style.color = '#00ffd5';
     }
   }
 
@@ -426,80 +534,133 @@ function clickTile(idx) {
 
 function revealAll() {
   for (let i = 0; i < CONFIG.gridSize; i++) {
-    if (!gameState.revealed.includes(i)) {
-      gameState.revealed.push(i);
-    }
+    if (!revealed.includes(i)) revealed.push(i);
   }
 }
 
-function render() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = '';
-
-  const suggestions = getSuggestions();
-
-  for (let i = 0; i < CONFIG.gridSize; i++) {
-    const div = document.createElement('div');
-    div.className = 'tile';
-
-    if (suggestions.includes(i) && !gameState.revealed.includes(i)) {
-      div.classList.add('suggest');
-    }
-
-    if (gameState.revealed.includes(i)) {
-      if (gameState.board[i] === 'mine') {
-        div.classList.add('mine');
-        div.innerText = '💣';
-      } else {
-        div.classList.add('safe');
-        div.innerText = '✓';
-      }
-    } else {
-      div.onclick = () => clickTile(i);
-    }
-
-    grid.appendChild(div);
-  }
-
-  updateUI();
-}
-
-function updateUI() {
-  document.getElementById('safe-count').textContent = `${gameState.safeCount}/${CONFIG.maxSafePicks}`;
-  document.getElementById('mine-count').textContent = CONFIG.mines;
-  document.getElementById('streak').textContent = gameState.stats.streak;
-  document.getElementById('wins').textContent = gameState.stats.wins;
+function updatePanel() {
+  const remaining = CONFIG.gridSize - revealed.length;
+  document.getElementById('safeCount').innerText = safeCount;
+  document.getElementById('maxSafe').innerText = CONFIG.maxSafePicks;
+  document.getElementById('remaining').innerText = remaining;
+  document.getElementById('mineCount').innerText = CONFIG.mines;
+  
+  const stats = getStats();
+  const winRate = stats.totalGames > 0 ? Math.round((stats.wins / stats.totalGames) * 100) : 0;
+  document.getElementById('winRate').innerText = winRate + '%';
 }
 
 function resetGame() {
-  initGame();
-  document.getElementById('status').textContent = '🎮 New game started';
+  init();
+  document.getElementById('status').innerText = '🎮 New round started — Pick a tile';
+  document.getElementById('status').style.color = '#00ffd5';
   render();
 }
 
-function showStats() {
-  const totalGames = gameState.stats.wins + gameState.stats.losses;
-  const winRate = totalGames > 0 ? Math.round((gameState.stats.wins / totalGames) * 100) : 0;
-
-  document.getElementById('modal-wins').textContent = gameState.stats.wins;
-  document.getElementById('modal-best-streak').textContent = gameState.stats.bestStreak;
-  document.getElementById('modal-win-rate').textContent = winRate + '%';
-  document.getElementById('modal-games-played').textContent = totalGames;
-
-  document.getElementById('stats-modal').classList.add('show');
+function saveGame() {
+  if (!autoSave) return;
+  const gameState = { board, revealed, safeCount, gameOver };
+  localStorage.setItem('tileAI_gameState', JSON.stringify(gameState));
 }
 
-function closeStats() {
-  document.getElementById('stats-modal').classList.remove('show');
+function loadGame() {
+  const saved = localStorage.getItem('tileAI_gameState');
+  if (saved) {
+    const state = JSON.parse(saved);
+    board = state.board || board;
+    revealed = state.revealed || revealed;
+    safeCount = state.safeCount || 0;
+    gameOver = state.gameOver || false;
+    return true;
+  }
+  return false;
 }
 
-loadGame();
-initGame();
-render();
+function toggleAutoSave() {
+  autoSave = !autoSave;
+  document.getElementById('autoSaveBtn').innerText = `💾 Auto-Save: ${autoSave ? 'ON' : 'OFF'}`;
+  if (autoSave) saveGame();
+}
 
-document.getElementById('stats-modal').addEventListener('click', (e) => {
-  if (e.target.id === 'stats-modal') closeStats();
+function getStats() {
+  const saved = localStorage.getItem('tileAI_stats') || '{"totalGames":0,"wins":0,"currentStreak":0,"bestStreak":0}';
+  return JSON.parse(saved);
+}
+
+function updateStats(result) {
+  let stats = getStats();
+  stats.totalGames++;
+  
+  if (result === 'win') {
+    stats.wins++;
+    stats.currentStreak = (stats.currentStreak || 0) + 1;
+    if (stats.currentStreak > stats.bestStreak) {
+      stats.bestStreak = stats.currentStreak;
+    }
+  } else {
+    stats.currentStreak = 0;
+  }
+  
+  localStorage.setItem('tileAI_stats', JSON.stringify(stats));
+}
+
+function showStatsModal() {
+  const stats = getStats();
+  const winRate = stats.totalGames > 0 ? Math.round((stats.wins / stats.totalGames) * 100) : 0;
+  
+  document.getElementById('modalGames').innerText = stats.totalGames;
+  document.getElementById('modalWins').innerText = stats.wins;
+  document.getElementById('modalStreak').innerText = stats.bestStreak;
+  document.getElementById('modalWinRate').innerText = winRate + '%';
+  
+  if (deferredPrompt) {
+    document.getElementById('installPrompt').style.display = 'block';
+  }
+  
+  document.getElementById('statsModal').classList.add('active');
+}
+
+function closeStatsModal() {
+  document.getElementById('statsModal').classList.remove('active');
+}
+
+function clearAllStats() {
+  if (confirm('Clear all game history? This cannot be undone.')) {
+    localStorage.removeItem('tileAI_stats');
+    localStorage.removeItem('tileAI_gameState');
+    closeStatsModal();
+    resetGame();
+  }
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
 });
+
+function installPWA() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choiceResult => {
+      if (choiceResult.outcome === 'accepted') {
+        deferredPrompt = null;
+        closeStatsModal();
+      }
+    });
+  }
+}
+
+window.addEventListener('beforeunload', () => saveGame());
+window.addEventListener('click', e => {
+  const modal = document.getElementById('statsModal');
+  if (e.target === modal) closeStatsModal();
+});
+
+// Initialize
+if (!loadGame()) {
+  init();
+}
+render();
 </script>
 
 </body>

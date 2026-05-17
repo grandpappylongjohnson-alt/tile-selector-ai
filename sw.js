@@ -1,58 +1,42 @@
 const CACHE_NAME = 'tile-ai-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const urlsToCache = [
+  './',
+  './index.html',
+  './manifest.json'
+];
 
-self.addEventListener('install', (e) => {
+self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS).catch(() => {
-        // Gracefully handle if some assets aren't available during first install
-        return cache.add('/index.html');
-      });
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-self.addEventListener('activate', (e) => {
+self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then((keys) => {
+    caches.keys().then(cacheNames => {
       return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', (e) => {
-  // Skip cross-origin requests
-  if (!e.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  
   e.respondWith(
-    caches.match(e.request).then((response) => {
-      if (response) {
-        return response;
-      }
-      return fetch(e.request).then((response) => {
-        // Don't cache non-successful responses
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+    caches.match(e.request)
+      .then(response => response || fetch(e.request))
+      .catch(() => {
+        if (e.request.mode === 'navigate') {
+          return caches.match('./index.html');
         }
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(e.request, responseToCache);
-        });
-        return response;
-      });
-    }).catch(() => {
-      // Return cached index.html as fallback for offline
-      return caches.match('/index.html');
-    })
+      })
   );
 });
