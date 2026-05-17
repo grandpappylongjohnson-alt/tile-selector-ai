@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0b0f1a">
+<meta name="description" content="Tile Selector AI - An intelligent minesweeper-style game with AI suggestions">
+
+<title>Tile Selector AI</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230b0f1a' width='192' height='192'/><circle cx='96' cy='96' r='80' fill='%2300ffd5'/><text x='96' y='120' font-size='80' fill='%230b0f1a' text-anchor='middle' font-weight='bold'>AI</text></svg>">
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #0b0f1a 0%, #1a1f2e 100%);
+  color: #e0e0e0;
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+}
+
+header {
+  margin-top: 20px;
+  margin-bottom: 10px;
+}
+
+h1 {
+  margin: 0 0 5px 0;
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #00ffd5, #00d4ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 2px;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: #888;
+  margin: 0;
+}
+
+#status {
+  font-size: 1.1rem;
+  margin: 15px 0;
+  min-height: 24px;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 15px auto;
+  max-width: 400px;
+  width: 100%;
+}
+
+.stat-box {
+  background: rgba(0, 255, 213, 0.08);
+  border: 1px solid rgba(0, 255, 213, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.9rem;
+}
+
+.stat-label {
+  color: #888;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #00ffd5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(55px, 1fr));
+  gap: 8px;
+  max-width: 500px;
+  margin: 20px auto;
+  width: 100%;
+  padding: 0 10px;
+}
+
+@media (max-width: 480px) {
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
+    gap: 6px;
+  }
+}
+
+.tile {
+  aspect-ratio: 1;
+  background: #1e2333;
+  border: 2px solid #2a2f45;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.5rem;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tile:hover:not(.revealed) {
+  border-color: #00ffd5;
+  transform: scale(1.05);
+}
+
+.tile:active:not(.revealed) {
+  transform: scale(0.95);
+}
+
+.tile.safe {
+  background: #1f8f4a;
+  border-color: #22a856;
+}
+
+.tile.mine {
+  background: #b3261e;
+  border-color: #d32f2f;
+}
+
+.tile.suggest {
+  border: 2px solid #00ffd5;
+  box-shadow: 0 0 12px rgba(0, 255, 213, 0.3), inset 0 0 12px rgba(0, 255, 213, 0.1);
+}
+
+.tile.suggest.safe {
+  box-shadow: 0 0 12px rgba(0, 255, 213, 0.3), inset 0 0 12px rgba(0, 255, 213, 0.1);
+}
+
+.controls {
+  display: flex;
+  gap: 10px;
+  margin: 20px auto;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00ffd5, #00d4ff);
+  color: #0b0f1a;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 255, 213, 0.3);
+}
+
+.btn-secondary {
+  background: #2a2f45;
+  color: #e0e0e0;
+  border: 1px solid #3a3f55;
+}
+
+.btn-secondary:hover {
+  background: #3a3f55;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.show {
+  display: flex;
+}
+
+.modal-content {
+  background: #1a1f2e;
+  border: 2px solid #00ffd5;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.modal-content h2 {
+  color: #00ffd5;
+  margin-top: 0;
+}
+
+.modal-content p {
+  margin: 15px 0;
+  line-height: 1.6;
+}
+
+footer {
+  margin-top: auto;
+  padding-bottom: 20px;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+a {
+  color: #00ffd5;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🎮 TILE AI</h1>
+  <p class="subtitle">Intelligent Minesweeper Strategy Game</p>
+</header>
+
+<div id="status">Starting new game...</div>
+
+<div class="stats">
+  <div class="stat-box">
+    <div class="stat-label">Safe Picks</div>
+    <div class="stat-value" id="safe-count">0/3</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Mines</div>
+    <div class="stat-value" id="mine-count">3</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Win Streak</div>
+    <div class="stat-value" id="streak">0</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Total Wins</div>
+    <div class="stat-value" id="wins">0</div>
+  </div>
+</div>
+
+<div class="grid" id="grid" role="main" aria-label="Game grid"></div>
+
+<div class="controls">
+  <button class="btn-primary" onclick="resetGame()" aria-label="Start a new game">New Game</button>
+  <button class="btn-secondary" onclick="showStats()" aria-label="Show game statistics">Stats</button>
+  <button class="btn-secondary" onclick="toggleAutoSave()" id="autosave-btn" aria-label="Toggle auto-save feature">Auto-Save: ON</button>
+</div>
+
+<div class="modal" id="stats-modal">
+  <div class="modal-content">
+    <h2>📊 Game Statistics</h2>
+    <p>Total Wins: <span id="modal-wins">0</span></p>
+    <p>Best Streak: <span id="modal-best-streak">0</span></p>
+    <p>Win Rate: <span id="modal-win-rate">0%</span></p>
+    <p>Games Played: <span id="modal-games-played">0</span></p>
+    <button class="btn-primary" onclick="closeStats()">Close</button>
+    <button class="btn-secondary" onclick="clearAllStats()">Clear All</button>
+  </div>
+</div>
+
+<footer>
+  <p>💾 Your progress is auto-saved | 🤖 AI-powered suggestions</p>
+  <p><a href="#" onclick="alert('Tile Selector AI v2.0\n\nPick safe tiles without hitting mines.\nReach the target to win!'); return false;">About</a></p>
+</footer>
+
+<script>
+// ============================================
+// CONFIGURATION
+// ============================================
+const CONFIG = {
+  mines: 3,
+  maxSafePicks: 3,
+  gridSize: 25,
+  suggestionCount: 3
+};
+
+// ============================================
+// STATE MANAGEMENT
+// ============================================
+let gameState = {
+  board: [],
+  revealed: [],
+  safeCount: 0,
+  gameOver: false,
+  won: false,
+  stats: {
+    wins: 0,
+    losses: 0,
+    streak: 0,
+    bestStreak: 0,
+    gamesPlayed: 0
+  },
+  autoSave: true
+};
+
+// ============================================
+// PERSISTENCE
+// ============================================
+function loadGame() {
+  const saved = localStorage.getItem('tileAI_gameState');
+  if (saved) {
+    gameState = JSON.parse(saved);
+  } else {
+    gameState.stats = { wins: 0, losses: 0, streak: 0, bestStreak: 0, gamesPlayed: 0 };
+    gameState.autoSave = true;
+  }
+}
+
+function saveGame() {
+  if (gameState.autoSave) {
+    localStorage.setItem('tileAI_gameState', JSON.stringify(gameState));
+  }
+}
+
+function clearAllStats() {
+  if (confirm('Clear all statistics? This cannot be undone.')) {
+    gameState.stats = { wins: 0, losses: 0, streak: 0, bestStreak: 0, gamesPlayed: 0 };
+    localStorage.removeItem('tileAI_gameState');
+    saveGame();
+    closeStats();
+    updateUI();
+  }
+}
+
+function toggleAutoSave() {
+  gameState.autoSave = !gameState.autoSave;
+  document.getElementById('autosave-btn').textContent = `Auto-Save: ${gameState.autoSave ? 'ON' : 'OFF'}`;
+  if (gameState.autoSave) saveGame();
+}
+
+// ============================================
+// GAME INITIALIZATION
+// ============================================
+function initGame() {
+  gameState.board = Array(CONFIG.gridSize).fill('safe');
+  gameState.revealed = [];
+  gameState.safeCount = 0;
+  gameState.gameOver = false;
+  gameState.won = false;
+
+  // Place mines randomly
+  let placed = 0;
+  while (placed < CONFIG.mines) {
+    const idx = Math.floor(Math.random() * CONFIG.gridSize);
+    if (gameState.board[idx] === 'safe') {
+      gameState.board[idx] = 'mine';
+      placed++;
+    }
+  }
+
+  gameState.stats.gamesPlayed++;
+  saveGame();
+}
+
+// ============================================
+// ADVANCED AI ENGINE
+// ============================================
+function calculateTileProbability(idx) {
+  if (gameState.revealed.includes(idx)) return -1; // Already revealed
+
+  const unrevealed = CONFIG.gridSize - gameState.revealed.length;
+  const minesLeft = CONFIG.mines - gameState.board.filter((v, i) => v === 'mine' && gameState.revealed.includes(i)).length;
+  const safeLeft = CONFIG.gridSize - CONFIG.mines - gameState.safeCount;
+
+  // Base probability
+  let baseProbability = safeLeft / unrevealed;
+
+  // Prefer tiles further from already picked ones (spread out picks)
+  let minDistance = Infinity;
+  gameState.revealed.forEach(revealedIdx => {
+    const dist = Math.abs(idx - revealedIdx);
+    minDistance = Math.min(minDistance, dist);
+  });
+
+  // Proximity bonus: prefer tiles further from others
+  const proximityBonus = Math.min(minDistance / 10, 0.15);
+
+  // Pattern analysis: tiles at grid edges/corners slightly safer in minesweeper variants
+  const row = Math.floor(idx / 5);
+  const col = idx % 5;
+  const isEdge = (row === 0 || row === 4 || col === 0 || col === 4) ? 0.02 : 0;
+
+  // Add controlled randomness for game feel
+  const noise = (Math.random() * 0.05) - 0.025;
+
+  return Math.max(0, baseProbability + proximityBonus + isEdge + noise);
+}
+
+function getSuggestions() {
+  if (gameState.gameOver) return [];
+  if (gameState.revealed.length === 0) {
+    // First pick: suggest center or random spread
+    return [12, 7, 17]; // Strategic starting positions
+  }
+
+  const scores = [];
+  for (let i = 0; i < CONFIG.gridSize; i++) {
+    const prob = calculateTileProbability(i);
+    if (prob >= 0) {
+      scores.push({ idx: i, prob });
+    }
+  }
+
+  return scores
+    .sort((a, b) => b.prob - a.prob)
+    .slice(0, CONFIG.suggestionCount)
+    .map(x => x.idx);
+}
+
+// ============================================
+// GAME LOGIC
+// ============================================
+function clickTile(idx) {
+  if (gameState.gameOver || gameState.revealed.includes(idx)) return;
+
+  gameState.revealed.push(idx);
+
+  if (gameState.board[idx] === 'mine') {
+    gameState.gameOver = true;
+    gameState.stats.streak = 0;
+    gameState.stats.losses++;
+    document.getElementById('status').textContent = '💥 Mine Hit! Game Over';
+    revealAll();
+  } else {
+    gameState.safeCount++;
+
+    if (gameState.safeCount >= CONFIG.maxSafePicks) {
+      gameState.gameOver = true;
+      gameState.won = true;
+      gameState.stats.wins++;
+      gameState.stats.streak++;
+      gameState.stats.bestStreak = Math.max(gameState.stats.bestStreak, gameState.stats.streak);
+      document.getElementById('status').textContent = `✅ Victory! ${CONFIG.maxSafePicks}/${CONFIG.maxSafePicks} safe picks!`;
+    } else {
+      document.getElementById('status').textContent = `Safe pick (${gameState.safeCount}/${CONFIG.maxSafePicks})`;
+    }
+  }
+
+  saveGame();
+  render();
+}
+
+function revealAll() {
+  for (let i = 0; i < CONFIG.gridSize; i++) {
+    if (!gameState.revealed.includes(i)) {
+      gameState.revealed.push(i);
+    }
+  }
+}
+
+// ============================================
+// RENDERING
+// ============================================
+function render() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  const suggestions = getSuggestions();
+
+  for (let i = 0; i < CONFIG.gridSize; i++) {
+    const div = document.createElement('div');
+    div.className = 'tile';
+    div.setAttribute('role', 'button');
+    div.setAttribute('aria-label', `Tile ${i + 1}`);
+    div.setAttribute('tabindex', '0');
+
+    if (suggestions.includes(i) && !gameState.revealed.includes(i)) {
+      div.classList.add('suggest');
+    }
+
+    if (gameState.revealed.includes(i)) {
+      div.classList.add('revealed');
+      if (gameState.board[i] === 'mine') {
+        div.classList.add('mine');
+        div.innerText = '💣';
+        div.setAttribute('aria-label', `Tile ${i + 1}: Mine`);
+      } else {
+        div.classList.add('safe');
+        div.innerText = '✓';
+        div.setAttribute('aria-label', `Tile ${i + 1}: Safe`);
+      }
+      div.style.cursor = 'default';
+    } else {
+      div.onclick = () => clickTile(i);
+      div.onkeypress = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          clickTile(i);
+        }
+      };
+    }
+
+    grid.appendChild(div);
+  }
+
+  updateUI();
+}
+
+function updateUI() {
+  document.getElementById('safe-count').textContent = `${gameState.safeCount}/${CONFIG.maxSafePicks}`;
+  document.getElementById('mine-count').textContent = CONFIG.mines;
+  document.getElementById('streak').textContent = gameState.stats.streak;
+  document.getElementById('wins').textContent = gameState.stats.wins;
+}
+
+// ============================================
+// CONTROLS
+// ============================================
+function resetGame() {
+  initGame();
+  document.getElementById('status').textContent = '🎮 New game started';
+  render();
+}
+
+function showStats() {
+  const totalGames = gameState.stats.wins + gameState.stats.losses;
+  const winRate = totalGames > 0 ? Math.round((gameState.stats.wins / totalGames) * 100) : 0;
+
+  document.getElementById('modal-wins').textContent = gameState.stats.wins;
+  document.getElementById('modal-best-streak').textContent = gameState.stats.bestStreak;
+  document.getElementById('modal-win-rate').textContent = winRate + '%';
+  document.getElementById('modal-games-played').textContent = totalGames;
+
+  document.getElementById('stats-modal').classList.add('show');
+}
+
+function closeStats() {
+  document.getElementById('stats-modal').classList.remove('show');
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+loadGame();
+initGame();
+render();
+
+// Close modal on background click
+document.getElementById('stats-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'stats-modal') closeStats();
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'r') resetGame();
+  if (e.key === 's') toggleAutoSave();
+});
+
+// ============================================
+// SERVICE WORKER REGISTRATION
+// ============================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(err => {
+    console.log('Service Worker registration failed:', err);
+  });
+}
+
+// Install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  deferredPrompt = e;
+});
+</script>
+
+</body>
+</html>
